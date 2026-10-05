@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuki Brain Vocab AI - Learning Y2K</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+        font-family: 'Inter', sans-serif;
+    }
+    .bg-pixel-grid {
+        background-color: #f8fafc; /* Màu nền slate-50 chuẩn của dự án */
+        background-image: linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="antialiased text-slate-800 min-h-screen flex flex-col bg-pixel-grid">
+    <!-- Navbar (Neo-Brutalism) -->
+    <nav class="w-full bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 border-b border-white/10 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <a href="/" class="text-2xl font-black tracking-tight text-orange-500 hover:translate-x-1 hover:translate-y-1 transition-transform" style="font-family: 'Righteous', cursive;">
+                Tuki<span class="text-indigo-600">BrainVocab</span><span class="text-green-600">AI</span>
+            </a>
+            <div class="flex flex-wrap space-x-2 md:space-x-4 text-sm font-bold text-black items-center">
+                <a href="/flashcard/" class="px-4 py-2 border-2 border-black bg-pink-100 hover:bg-pink-200 shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all" data-i18n="nav_flashcard">Flashcard</a>
+                <a href="/quiz/" class="px-4 py-2 border-2 border-black bg-cyan-100 hover:bg-cyan-200 shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all" data-i18n="nav_quiz">Quiz</a>
+                <a href="/dashboard/" class="px-4 py-2 border-2 border-black bg-yellow-100 hover:bg-yellow-200 shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all" data-i18n="nav_dashboard">Dashboard</a>
+                <a href="/manage/" class="px-4 py-2 border-2 border-black bg-indigo-100 hover:bg-indigo-200 shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all" data-i18n="nav_manage">Vocabulary</a>
+                
+                <!-- Language Switcher -->
+                <button onclick="toggleLanguage()" class="inline-flex items-center justify-center px-4 py-2 text-sm font-black text-black bg-white border-2 border-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                    <span id="lang-text">VN | EN</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content Area -->
+    <main class="flex-grow flex items-center justify-center p-6 w-full">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer (Luxury Win98 / Neo-Brutalism) -->
+    <nav class="w-full bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 border-b border-white/10 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- Left Side -->
+            <div class="flex items-center gap-3">
+                <span class="px-2 py-1 bg-emerald-400 border-2 border-black font-black text-black text-[10px] tracking-widest shadow-[2px_2px_0px_#000]">v2.0.26</span>
+                <span class="text-xs font-black text-orange-500">
+                    © 2026 TukiBrainVocabAI - <span data-i18n="footer_rights">Hãy học theo cách của bạn</span>
+                </span>
+            </div>
+            
+            <!-- Middle Side (Status Bar Indicator) -->
+            <div class="hidden md:flex items-center bg-slate-100 border-2 border-black px-3 py-1.5 shadow-[inset_2px_2px_0px_rgba(0,0,0,0.2)]">
+                <div class="w-2 h-2 bg-emerald-500 rounded-full animate-ping mr-2 absolute"></div>
+                <div class="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
+                <span class="text-[10px] font-black text-black tracking-widest uppercase" data-i18n="footer_speed">System: Online</span>
+            </div>
+            
+            <!-- Right Side (Credits) -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-black text-indigo-600" data-i18n="footer_crafted">Quản trị viên</span>
+                <a href="https://www.facebook.com/tu4nk13t" target="_blank" rel="noopener noreferrer" class="px-3 py-1 bg-yellow-300 border-2 border-black font-black text-black text-xs italic tracking-wider shadow-[3px_3px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_#000] transition-all">Đinh Tuấn Kiệt</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Global Translations & Logic -->
+    <script>
+        const translations = {
+            vi: {
+                // Navigation
+                nav_flashcard: "Flashcard",
+                nav_quiz: "Quiz",
+                nav_dashboard: "Dashboard",
+
+                // home.html
+                home_hero_title: "TukiBrainVocabAI: cỗ máy in từ vựng thời đại mới mang phong cách Y2K",
+                home_hero_desc: "Chào mừng bạn đến với thế giới từ vựng rực rỡ sắc màu. Khám phá ngay các tính năng mạnh mẽ bên dưới!",
+                home_sticker_flashcard: "Học từ vựng",
+                home_sticker_quiz: "Thử thách trắc nghiệm",
+                home_sticker_dashboard: "Bảng phân tích",
+                home_sticker_manage: "Quản lý kho từ",
+
+                // flashcard.html
+                flashcard_title: "Học từ vựng",
+                flashcard_card_progress: "Thẻ",
+                flashcard_all_topics: "Tất cả chủ đề",
+                flashcard_click_flip: "Nhấn vào thẻ để lật",
+                flashcard_click_return: "Nhấn để quay lại",
+                flashcard_btn_review: "Cần học lại",
+                flashcard_btn_learned: "Đã thuộc",
+                flashcard_empty_title: "Hết từ vựng!",
+                flashcard_empty_msg: "Chưa có từ vựng nào trong chủ đề này, hoặc bạn đã học hết.",
+                flashcard_modal_edit_title: "Sửa từ vựng nhanh",
+                flashcard_btn_save_edit: "Lưu cập nhật",
+                msg_confirm_delete: "Chắc chắn xóa từ vựng này khỏi hệ thống?",
+                msg_empty_topic: "Chủ đề này hiện chưa có từ vựng nào.",
+                msg_finished_all: "Tuyệt vời! Bạn đã hoàn thành các từ vựng.",
+                msg_no_system_words: "Hệ thống hiện chưa có từ vựng nào.",
+                msg_browser_no_tts: "Trình duyệt không hỗ trợ đọc.",
+                msg_network_error: "Lỗi kết nối",
+                msg_saving: "Đang lưu...",
+
+                // quiz.html
+                quiz_title: "Trắc nghiệm (Quiz)",
+                quiz_subtitle: "Kiểm tra trí nhớ của bạn với các từ vựng ngẫu nhiên.",
+                quiz_all_topics: "Tất cả chủ đề",
+                quiz_error_not_enough: "Thiếu dữ liệu!",
+                quiz_error_desc: "Hệ thống cần tối thiểu 4 từ vựng để tạo bài tập (gồm 1 đáp án đúng và 3 đáp án sai). Vui lòng thêm từ mới.",
+                quiz_btn_to_manage: "Tới kho từ vựng",
+                quiz_loading: "Đang tạo bài tập...",
+                quiz_opps: "Ôi!",
+                quiz_question: "Câu",
+                quiz_score: "Điểm:",
+                quiz_instruction: "Chọn nghĩa đúng của từ",
+                quiz_btn_next: "Câu tiếp theo →",
+                quiz_finish_title: "Hoàn thành!",
+                quiz_finish_desc: "Bạn đã xuất sắc vượt qua bài kiểm tra.",
+                quiz_score_label: "Điểm số",
+                quiz_btn_retry: "Làm lại",
+                quiz_btn_dashboard: "Xem dashboard",
+                msg_quiz_load_err: "Lỗi kết nối khi tải quiz!",
+
+                // dashboard.html
+                dash_title: "Bảng phân tích dữ liệu",
+                dash_subtitle: "Chào mừng bạn. Dưới đây là tiến trình học tập của bạn trên hệ thống.",
+                dash_sys_has: "Hệ thống có",
+                dash_words: "Từ vựng",
+                dash_learned: "Đã thuộc",
+                dash_review: "Cần học",
+                dash_history_title: "Lịch sử kiểm tra (Quiz)",
+                dash_history_desc: "Bảng theo dõi thành tích làm bài trắc nghiệm của bạn.",
+                dash_btn_do_quiz: "Làm bài ngay",
+                dash_th_time: "Thời gian",
+                dash_th_score: "Thành tích",
+                dash_th_rating: "Đánh giá",
+                dash_th_accuracy: "Độ chính xác",
+                dash_empty_history: "Chưa có dữ liệu",
+                dash_empty_desc: "Bạn chưa làm bài kiểm tra nào. Hãy thử thách bản thân ngay với bài Quiz đầu tiên nhé.",
+                badge_excellent: "Xuất sắc",
+                badge_pass: "Đạt yêu cầu",
+                badge_try: "Cần cố gắng",
+
+                // manage_words.html
+                title: "Kho từ vựng chung",
+                subtitle: "Đóng góp từ vựng để xây dựng từ điển cho mọi người học.",
+                add_topic: "Thêm chủ đề",
+                add_word: "Thêm từ mới",
+                import_bulk: "Tải lên tệp từ vựng",
+                drag_drop: "Kéo thả file CSV/Excel vào đây hoặc click để chọn file.",
+                header_guide: "Hướng dẫn cột header (Tên bất kỳ)",
+                guide_en: "Tiếng Anh:",
+                guide_vi: "Tiếng Việt:",
+                guide_pos: "Loại từ:",
+                guide_other: "Khác:",
+                extracting: "Đang bóc tách dữ liệu...",
+                ai_generator: "AI data generator",
+                ai_generator_desc: "Tự động sinh bộ từ vựng theo yêu cầu",
+                ai_prompt_placeholder: "VD: Tạo 10 từ vựng TOEIC chủ đề Hợp đồng thương mại...",
+                btn_gen_csv: "🤖 Tự động sinh CSV",
+                ai_thinking: "AI đang tư duy và tạo dữ liệu...",
+                th_word: "Từ vựng",
+                th_topic: "Chủ đề",
+                th_pos: "Loại từ",
+                th_meaning: "Nghĩa tiếng Việt",
+                th_date: "Ngày tạo",
+                th_actions: "Thao tác",
+                empty_table: "Kho từ vựng hiện đang trống. Hãy thêm từ đầu tiên!",
+                modal_add_title: "Thêm từ mới",
+                modal_edit_title: "Sửa từ vựng",
+                label_english: "Từ tiếng Anh *",
+                ph_english: "vd: Apple",
+                label_vietnamese: "Nghĩa tiếng Việt *",
+                ph_vietnamese: "vd: Quả táo",
+                label_topic: "Chủ đề",
+                opt_no_topic: "Không phân loại",
+                label_pos: "Loại từ",
+                opt_n: "Danh từ (Noun)",
+                opt_v: "Động từ (Verb)",
+                opt_adj: "Tính từ (Adjective)",
+                opt_adv: "Trạng từ (Adverb)",
+                opt_prep: "Giới từ (Preposition)",
+                opt_conj: "Liên từ (Conjunction)",
+                label_pron: "Phiên âm (IPA)",
+                ph_pron: "vd: ˈæp.əl",
+                label_example_en: "Câu ví dụ (Tiếng Anh)",
+                btn_check_ai: "🤖 Check bằng AI",
+                ph_example_en: "I eat an apple.",
+                btn_apply_ai: "Áp dụng câu sửa này",
+                label_example_vi: "Nghĩa câu ví dụ",
+                ph_example_vi: "Tôi ăn một quả táo.",
+                btn_cancel: "Hủy bỏ",
+                btn_save_word: "Lưu từ vựng",
+                modal_topic_title: "Thêm chủ đề mới",
+                label_topic_name: "Tên chủ đề *",
+                ph_topic_name: "vd: TOEIC, IT, Travel...",
+                btn_cancel_topic: "Hủy",
+                btn_save_topic: "Lưu chủ đề",
+                msg_success: "Thành công",
+                msg_error: "Có lỗi xảy ra",
+                toast_save_success: "Lưu từ vựng thành công!",
+                toast_delete_success: "Đã xóa từ vựng.",
+                toast_topic_success: "Tạo chủ đề thành công!",
+                toast_import_invalid: "Chỉ hỗ trợ định dạng .csv hoặc .xlsx",
+                toast_import_success: "Thành công! Đã nạp {count} từ vựng vào hệ thống.",
+                toast_network_error: "Lỗi kết nối mạng.",
+                toast_req_prompt: "Vui lòng nhập yêu cầu cho AI (vd: Tạo 10 từ TOEIC...).",
+                toast_gen_success: "Tuyệt vời! Đã tạo và tải xuống file: {filename}",
+                toast_req_sentence: "Vui lòng nhập câu ví dụ để AI kiểm tra.",
+                toast_perfect: "Câu hoàn hảo!",
+                toast_ai_applied: "Đã áp dụng câu sửa!",
+                toast_ai_found_error: "Phát hiện lỗi ngữ pháp",
+                confirm_delete: "Bạn có chắc chắn muốn xóa từ vựng này khỏi hệ thống? Hành động này không thể hoàn tác.",
+                status_saving: "Đang lưu...",
+                status_generating: "Đang tạo dữ liệu...",
+                status_checking: "Đang check...",
+                ai_correct: "Câu ví dụ chuẩn ngữ pháp! 👍",
+                ai_need_fix: "Cần sửa đổi một chút:",
+                ai_error: "Lỗi:",
+                ai_suggest: "Gợi ý:",
+                footer_rights: "Hãy học theo cách của bạn",
+                footer_speed: "Hệ thống: Đang hoạt động",
+                footer_crafted: "Quản trị viên"
+            },
+            en: {
+                // Navigation
+                nav_flashcard: "Flashcard",
+                nav_quiz: "Quiz",
+                nav_dashboard: "Dashboard",
+                nav_manage: "Vocabulary",
+
+                // home.html
+                home_hero_title: "TukiBrainVocabAI: A new-age vocabulary printing machine in the Y2K style",
+                home_hero_desc: "Welcome to the colorful world of vocabulary. Discover powerful features below!",
+                home_sticker_flashcard: "Learn vocabulary",
+                home_sticker_quiz: "Quiz challenge",
+                home_sticker_dashboard: "Analytics dashboard",
+                home_sticker_manage: "Manage vocabulary",
+
+                // flashcard.html
+                flashcard_title: "Learn vocabulary",
+                flashcard_card_progress: "Card",
+                flashcard_all_topics: "All topics",
+                flashcard_click_flip: "Click card to flip",
+                flashcard_click_return: "Click to return",
+                flashcard_btn_review: "Need to review",
+                flashcard_btn_learned: "Learned",
+                flashcard_empty_title: "Out of vocabulary!",
+                flashcard_empty_msg: "There are no words in this topic, or you have learned them all.",
+                flashcard_modal_edit_title: "Quick edit word",
+                flashcard_btn_save_edit: "Save update",
+                msg_confirm_delete: "Are you sure you want to delete this word from the system?",
+                msg_empty_topic: "This topic currently has no words.",
+                msg_finished_all: "Great! You have completed the vocabulary.",
+                msg_no_system_words: "The system currently has no words.",
+                msg_browser_no_tts: "Browser does not support text-to-speech.",
+                msg_network_error: "Network error",
+                msg_saving: "Saving...",
+
+                // quiz.html
+                quiz_title: "Quiz",
+                quiz_subtitle: "Test your memory with random vocabulary.",
+                quiz_all_topics: "All topics",
+                quiz_error_not_enough: "Not enough data!",
+                quiz_error_desc: "The system needs at least 4 words to create a quiz. Please add new words.",
+                quiz_btn_to_manage: "Go to vocabulary station",
+                quiz_loading: "Generating quiz...",
+                quiz_opps: "Oops!",
+                quiz_question: "Question",
+                quiz_score: "Score:",
+                quiz_instruction: "Choose the correct meaning",
+                quiz_btn_next: "Next question →",
+                quiz_finish_title: "Finished!",
+                quiz_finish_desc: "You have successfully passed the test.",
+                quiz_score_label: "Score",
+                quiz_btn_retry: "Retry",
+                quiz_btn_dashboard: "View dashboard",
+                msg_quiz_load_err: "Connection error when loading quiz!",
+
+                // dashboard.html
+                dash_title: "Analytics dashboard",
+                dash_subtitle: "Welcome. Below is your learning progress on the system.",
+                dash_sys_has: "System has",
+                dash_words: "Vocabulary",
+                dash_learned: "Learned",
+                dash_review: "Need to review",
+                dash_history_title: "Quiz history",
+                dash_history_desc: "Tracker for your quiz performance.",
+                dash_btn_do_quiz: "Take quiz now",
+                dash_th_time: "Time",
+                dash_th_score: "Score",
+                dash_th_rating: "Rating",
+                dash_th_accuracy: "Accuracy",
+                dash_empty_history: "No data yet",
+                dash_empty_desc: "You haven't taken any quizzes. Challenge yourself with the first quiz now.",
+                badge_excellent: "Excellent",
+                badge_pass: "Pass",
+                badge_try: "Needs improvement",
+
+                // manage_words.html
+                title: "Common vocabulary station",
+                subtitle: "Contribute vocabulary to build a dictionary for everyone.",
+                add_topic: "Add topic",
+                add_word: "Add new word",
+                import_bulk: "Upload data",
+                drag_drop: "Drag & drop CSV/Excel file here or click to select.",
+                header_guide: "Header columns guide (Any name)",
+                guide_en: "English:",
+                guide_vi: "Vietnamese:",
+                guide_pos: "Part of speech:",
+                guide_other: "Others:",
+                extracting: "Extracting data...",
+                ai_generator: "AI data generator",
+                ai_generator_desc: "Automatically generate vocabulary by request",
+                ai_prompt_placeholder: "EX: Create 10 TOEIC words about Commercial Contracts...",
+                btn_gen_csv: "🤖 Generate CSV",
+                ai_thinking: "AI is thinking and creating data...",
+                th_word: "Vocabulary",
+                th_topic: "Topic",
+                th_pos: "Part of speech",
+                th_meaning: "Vietnamese meaning",
+                th_date: "Date created",
+                th_actions: "Actions",
+                empty_table: "The vocabulary station is currently empty. Add the first word!",
+                modal_add_title: "Add new word",
+                modal_edit_title: "Edit word",
+                label_english: "English word *",
+                ph_english: "ex: Apple",
+                label_vietnamese: "Vietnamese meaning *",
+                ph_vietnamese: "ex: Quả táo",
+                label_topic: "Topic",
+                opt_no_topic: "No category",
+                label_pos: "Part of speech",
+                opt_n: "Noun (N)",
+                opt_v: "Verb (V)",
+                opt_adj: "Adjective (ADJ)",
+                opt_adv: "Adverb (ADV)",
+                opt_prep: "Preposition (PREP)",
+                opt_conj: "Conjunction (CONJ)",
+                label_pron: "Pronunciation (IPA)",
+                ph_pron: "ex: ˈæp.əl",
+                label_example_en: "Example sentence (English)",
+                btn_check_ai: "🤖 Check with AI",
+                ph_example_en: "I eat an apple.",
+                btn_apply_ai: "Apply this fix",
+                label_example_vi: "Example meaning",
+                ph_example_vi: "Tôi ăn một quả táo.",
+                btn_cancel: "Cancel",
+                btn_save_word: "Save word",
+                modal_topic_title: "Add new topic",
+                label_topic_name: "Topic name *",
+                ph_topic_name: "ex: TOEIC, IT, Travel...",
+                btn_cancel_topic: "Cancel",
+                btn_save_topic: "Save topic",
+                msg_success: "Success",
+                msg_error: "An error occurred",
+                toast_save_success: "Word saved successfully!",
+                toast_delete_success: "Word deleted.",
+                toast_topic_success: "Topic created successfully!",
+                toast_import_invalid: "Only .csv or .xlsx formats are supported",
+                toast_import_success: "Success! Imported {count} words into the system.",
+                toast_network_error: "Network connection error.",
+                toast_req_prompt: "Please enter a request for AI (ex: Create 10 TOEIC words...).",
+                toast_gen_success: "Great! Generated and downloaded file: {filename}",
+                toast_req_sentence: "Please enter an example sentence for AI to check.",
+                toast_perfect: "Perfect sentence!",
+                toast_ai_applied: "Fix applied!",
+                toast_ai_found_error: "Grammar error detected",
+                confirm_delete: "Are you sure you want to delete this word from the system? This action cannot be undone.",
+                status_saving: "Saving...",
+                status_generating: "Generating data...",
+                status_checking: "Checking...",
+                ai_correct: "Sentence is grammatically correct! 👍",
+                ai_need_fix: "Needs a little tweak:",
+                ai_error: "Error:",
+                ai_suggest: "Suggestion:",
+                footer_rights: "Learn in your own way",
+                footer_speed: "System: Online",
+                footer_crafted: "Developer/WebMaster/Admin"
+            }
+        };
+
+        let currentLang = localStorage.getItem('appLang') || 'vi';
+
+        function updateLanguage(lang) {
+            // Chốt chặn phòng thủ dữ liệu rác hoặc undefined
+            if (!lang || (lang !== 'vi' && lang !== 'en')) {
+                lang = localStorage.getItem('appLang') || 'vi';
+                if (lang !== 'vi' && lang !== 'en') lang = 'vi';
+            }
+            
+            currentLang = lang;
+            localStorage.setItem('appLang', lang);
+            
+            const langBtnText = document.getElementById('lang-text');
+            if (langBtnText) {
+                langBtnText.textContent = lang === 'vi' ? 'VN | EN' : 'EN | VN';
+            }
+            
+            const elements = document.querySelectorAll('[data-i18n]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if(translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+            
+            const placeholders = document.querySelectorAll('[data-i18n-placeholder]');
+            placeholders.forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if(translations[lang][key]) {
+                    el.setAttribute('placeholder', translations[lang][key]);
+                }
+            });
+
+            // Trigger custom event so page-specific scripts can update if needed
+            document.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang: currentLang } }));
+        }
+
+        function toggleLanguage() {
+            updateLanguage(currentLang === 'vi' ? 'en' : 'vi');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLanguage(currentLang);
+        });
+
+        function t(key) {
+            return translations[currentLang][key] || key;
+        }
+    </script>
+</body>
+</html>

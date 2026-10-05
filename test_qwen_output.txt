@@ -1,0 +1,92 @@
+[
+    {
+        "english": "network",
+        "vietnamese": "mạng lưới, hệ thống mạng",
+        "pos": "N",
+        "pronunciation": "/ˈnet.wɜːrk/",
+        "example_en": "The company has a strong online network.",
+        "example_vi": "Công ty của chúng tôi có một mạng lưới trực tuyến mạnh mẽ.",
+        "topic": "Technology"
+    },
+    {
+        "english": "software",
+        "vietnamese": "chương trình phần mềm, ứng dụng",
+        "pos": "N",
+        "pronunciation": "/ˈswəː.d(ə)w/",
+        "example_en": "They use special software to process data.",
+        "example_vi": "Họ sử dụng một chương trình phần mềm đặc biệt để xử lý dữ liệu.",
+        "topic": "Technology"
+    },
+    {
+        "english": "hardware",
+        "vietnamese": "linh kiện phần cứng, thiết bị điện tử",
+        "pos": "N",
+        "pronunciation": "/ˈhɑː.wə.d(ə)r/",
+        "example_en": "The hardware needs to be upgraded.",
+        "example_vi": "Linh kiện cần được nâng cấp.",
+        "topic": "Technology"
+    },
+    {
+        "english": "Internet",
+        "vietnamese": "Mạng Internet, mạng toàn cầu",
+        "pos": "N",
+        "pronunciation": "/ˈɪntər.nɛt/",
+        "example_en": "Many people use the Internet to communicate and do business.",
+        "example_vi": "Hàng triệu người sử dụng Mạng Internet để giao tiếp và kinh doanh.",
+        "topic": "Technology"
+    },
+    {
+        "english": "database",
+        "vietnamese": "cơ sở dữ liệu, database",
+        "pos": "N",
+        "pronunciation": "/ˈdætəˌbɑːs/",
+        "example_en": "The company maintains a large database of customer information.",
+        "example_vi": "Công ty duy trì một cơ sở dữ liệu lớn về thông tin khách hàng.",
+        "topic": "Technology"
+    },
+    {
+        "english": "interface",
+        "vietnamese": "giao diện, giao tiếp",
+        "pos": "N",
+        "pronunciation": "/ɪnˈtər.fɪs/",
+        "example_en": "The software interface is user-friendly.",
+        "example_vi": "Giao diện của chương trình rất thân thiện với người sử dụng.",
+        "topic": "Technology"
+    },
+    {
+        "english": "security",
+        "vietnamese": "an ninh, bảo mật",
+        "pos": "N",
+        "pronunciation": "/ˈsek.tər.i/",
+        "example_en": "The company emphasizes the importance of information security.",
+        "example_vi": "Công ty nhấn mạnh tầm quan trọng của việc bảo mật thông tin.",
+        "topic": "Technology"
+    },
+    {
+        "english": "application",
+        "vietnamese": "ứng dụng, chương trình ứng dụng",
+        "pos": "N",
+        "pronunciation": "/ˌæpl.iˈkeɪ.ʃən/",
+        "example_en": "He downloaded a new application to his phone.",
+        "example_vi": "Anh ta đã tải xuống một ứng dụng mới vào điện thoại của mình.",
+        "topic": "Technology"
+    },
+    {
+        "english": "system",
+        "vietnamese": "hệ thống, công nghệ",
+        "pos": "N",
+        "pronunciation": "/ˈsɪst.əm/",
+        "example_en": "The company has an efficient system for managing projects.",
+        "example_vi": "Công ty có một hệ thống quản lý dự án hiệu quả.",
+        "topic": "Technology"
+    },
+    {
+        "english": "server",
+        "vietnamese": "thiết bị máy chủ, server",
+        "pos": "N",
+        "pronunciation": "/ˈsɛr.vər/",
+        "example_en": "The company uses a dedicated server for their online services.",
+        "example_vi": "Công ty sử dụng một máy chủ riêng để phục vụ các dịch vụ trực tuyến của mình.",
+        "topic": "Technology"
+    }
+]

@@ -1,0 +1,831 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-6xl w-full mx-auto pb-12 mt-4 relative">
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+            <h1 class="text-4xl font-black tracking-tight text-black" data-i18n="title">Kho từ vựng chung</h1>
+            <p class="text-black text-lg mt-2 font-bold" data-i18n="subtitle">
+                Đóng góp từ vựng để xây dựng từ điển cho mọi người học.
+            </p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <!-- Language Switcher has been moved to base.html -->
+
+            <button onclick="openTopicModal()" class="inline-flex items-center justify-center px-5 py-3 text-sm font-black text-black bg-white border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                <span data-i18n="add_topic">Thêm chủ đề</span>
+            </button>
+            <button onclick="openModal()" class="inline-flex items-center justify-center px-6 py-3 text-sm font-black text-black transition-all duration-200 bg-cyan-300 border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+                </svg>
+                <span data-i18n="add_word">Thêm từ mới</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Upload and AI Zone -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Upload Zone -->
+        <div class="p-8 border-4 border-black bg-yellow-300 shadow-[8px_8px_0px_#000] text-center hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-200 relative group" id="drop-zone" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)">
+            <input type="file" id="file-upload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".csv, .xlsx" onchange="handleFileSelect(event)">
+            
+            <div class="flex flex-col items-center justify-center pointer-events-none">
+                <div class="w-16 h-16 bg-white border-4 border-black text-black flex items-center justify-center mb-4 shadow-[4px_4px_0px_#000]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-black text-black mb-2" data-i18n="import_bulk">Tải lên tệp từ vựng</h3>
+                <p class="text-black font-bold max-w-lg mb-4 text-sm" data-i18n="drag_drop">Kéo thả file CSV/Excel vào đây hoặc click để chọn file.</p>
+                
+                <div class="text-xs text-black font-bold text-left bg-white p-4 border-4 border-black inline-block pointer-events-auto shadow-[4px_4px_0px_#000] w-full">
+                    <p class="font-black text-black tracking-widest mb-2 border-b-2 border-black pb-2" data-i18n="header_guide">Hướng dẫn cột header (Tên bất kỳ)</p>
+                    <ul class="space-y-1 list-disc list-inside">
+                        <li><span class="font-black text-black" data-i18n="guide_en">Tiếng Anh:</span> english, en, word</li>
+                        <li><span class="font-black text-black" data-i18n="guide_vi">Tiếng Việt:</span> vietnamese, vi, meaning</li>
+                        <li><span class="font-black text-black" data-i18n="guide_pos">Loại từ:</span> pos, part of speech</li>
+                        <li><span class="font-black text-black" data-i18n="guide_other">Khác:</span> pron, example_en, example_vi, topic</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Loading Overlay -->
+            <div id="upload-loading" class="absolute inset-0 bg-yellow-300 border-4 border-black flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity z-10">
+                <svg class="animate-spin h-10 w-10 text-black mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-black font-black tracking-tight" data-i18n="extracting">Đang bóc tách dữ liệu...</p>
+            </div>
+        </div>
+
+        <!-- AI Generator Card -->
+        <div class="p-8 border-4 border-black bg-[#FF69B4] shadow-[8px_8px_0px_#000] relative flex flex-col transition-all hover:translate-x-1 hover:translate-y-1 hover:shadow-none">
+            <div class="flex items-center mb-6">
+                <div class="w-16 h-16 bg-white border-4 border-black flex items-center justify-center text-black shadow-[4px_4px_0px_#000] mr-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-black text-black mb-1" data-i18n="ai_generator">AI data generator</h3>
+                    <p class="text-sm text-black font-bold" data-i18n="ai_generator_desc">Tự động sinh bộ từ vựng theo yêu cầu</p>
+                </div>
+            </div>
+            
+            <textarea id="ai-generator-prompt" rows="3" class="w-full px-5 py-4 bg-white border-4 border-black focus:outline-none focus:ring-0 shadow-[4px_4px_0px_#000] focus:shadow-[2px_2px_0px_#000] transition-all font-bold text-black mb-4 resize-none flex-grow" data-i18n-placeholder="ai_prompt_placeholder" placeholder="VD: Tạo 10 từ vựng TOEIC chủ đề Hợp đồng thương mại..."></textarea>
+            
+            <button type="button" id="btn-generate-ai" onclick="generateVocabFile()" class="w-full py-4 bg-white text-black border-4 border-black font-black shadow-[4px_4px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center justify-center">
+                <span id="gen-btn-text" data-i18n="btn_gen_csv">🤖 Tự động sinh CSV</span>
+                <svg class="animate-spin ml-2 h-5 w-5 text-black hidden" id="gen-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+            
+            <!-- Loading Overlay -->
+            <div id="gen-loading" class="absolute inset-0 bg-[#FF69B4] border-4 border-black flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity z-10">
+                <svg class="animate-spin h-10 w-10 text-black mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-black font-black tracking-tight" data-i18n="ai_thinking">AI đang tư duy và tạo dữ liệu...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white border-4 border-black shadow-[8px_8px_0px_#000] overflow-hidden mt-8">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-cyan-300 text-black text-xs font-black tracking-widest border-b-4 border-black">
+                        <th class="px-8 py-5 border-r-4 border-black" data-i18n="th_word">Từ vựng</th>
+                        <th class="px-8 py-5 border-r-4 border-black" data-i18n="th_topic">Chủ đề</th>
+                        <th class="px-8 py-5 border-r-4 border-black" data-i18n="th_pos">Loại từ</th>
+                        <th class="px-8 py-5 border-r-4 border-black" data-i18n="th_meaning">Nghĩa tiếng Việt</th>
+                        <th class="px-8 py-5 border-r-4 border-black" data-i18n="th_date">Ngày tạo</th>
+                        <th class="px-8 py-5 text-right" data-i18n="th_actions">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y-4 divide-black">
+                    {% for word in words %}
+                    <tr class="hover:bg-yellow-100 transition-colors duration-200 group bg-white" id="row-{{ word.id }}">
+                        <!-- Word & Pronunciation -->
+                        <td class="px-8 py-4 border-r-4 border-black">
+                            <div class="font-black text-black text-xl" id="td-en-{{ word.id }}">{{ word.english_word }}</div>
+                            <div class="text-black font-bold text-xs mt-0.5" id="td-pron-{{ word.id }}">{{ word.pronunciation|default:"" }}</div>
+                            <!-- Data ẩn dùng để điền form Edit -->
+                            <div class="hidden" id="td-ex-en-{{ word.id }}">{{ word.example_sentence|default:"" }}</div>
+                            <div class="hidden" id="td-ex-vi-{{ word.id }}">{{ word.example_meaning|default:"" }}</div>
+                        </td>
+                        
+                        <!-- Topic -->
+                        <td class="px-8 py-4 font-black text-black border-r-4 border-black">
+                            <span class="inline-block whitespace-nowrap bg-white text-black px-3 py-1.5 text-xs border-2 border-black shadow-[2px_2px_0px_#000]" id="td-topic-{{ word.id }}" data-topic-id="{{ word.topic_id|default:'' }}">
+                                {{ word.topic.name|default:"Chung" }}
+                            </span>
+                        </td>
+
+                        <!-- Part of Speech -->
+                        <td class="px-8 py-4 border-r-4 border-black">
+                            <span class="inline-flex items-center px-3 py-1 text-[10px] font-black tracking-widest bg-rose-400 text-black border-2 border-black shadow-[2px_2px_0px_#000]" id="td-pos-{{ word.id }}">
+                                {{ word.part_of_speech }}
+                            </span>
+                        </td>
+                        
+                        <!-- Meaning -->
+                        <td class="px-8 py-4 font-black text-black border-r-4 border-black" id="td-vi-{{ word.id }}">
+                            {{ word.vietnamese_meaning }}
+                        </td>
+                        
+                        <!-- Date -->
+                        <td class="px-8 py-4 text-black text-xs font-black whitespace-nowrap border-r-4 border-black">
+                            {{ word.created_at|date:"d/m/Y" }}
+                        </td>
+                        
+                        <!-- Actions -->
+                        <td class="px-8 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button data-id="{{ word.id }}" onclick="editWord(this)" class="p-2 text-black border-2 border-transparent hover:border-black hover:bg-emerald-400 hover:shadow-[2px_2px_0px_#000] transition-all" title="Sửa">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button data-id="{{ word.id }}" onclick="deleteWord(this)" class="p-2 text-black border-2 border-transparent hover:border-black hover:bg-rose-400 hover:shadow-[2px_2px_0px_#000] transition-all" title="Xóa">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-8 py-16 text-center text-black font-black text-xl" data-i18n="empty_table">
+                            Kho từ vựng hiện đang trống. Hãy thêm từ đầu tiên!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Word Modal -->
+    <div id="word-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeModal()"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative w-full max-w-2xl bg-white border-4 border-black shadow-[12px_12px_0px_#000] p-10 transform scale-95 transition-transform duration-300" id="modal-content">
+            <!-- Close Btn -->
+            <button onclick="closeModal()" class="absolute top-6 right-6 p-2 text-black hover:bg-rose-400 hover:text-white border-4 border-transparent hover:border-black transition-all hover:shadow-[4px_4px_0px_#000]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            <h2 class="text-3xl font-black tracking-tight text-black mb-8" id="modal-title" data-i18n="modal_add_title">Thêm từ mới</h2>
+            
+            <form id="word-form" onsubmit="saveWord(event)">
+                <input type="hidden" id="word-id">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_english">Từ tiếng Anh *</label>
+                        <input type="text" id="english_word" required class="w-full px-5 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 shadow-[4px_4px_0px_#000] focus:shadow-none transition-all font-black text-black" data-i18n-placeholder="ph_english" placeholder="vd: Apple">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_vietnamese">Nghĩa tiếng Việt *</label>
+                        <input type="text" id="vietnamese_meaning" required class="w-full px-5 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 shadow-[4px_4px_0px_#000] focus:shadow-none transition-all font-bold text-black" data-i18n-placeholder="ph_vietnamese" placeholder="vd: Quả táo">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_topic">Chủ đề</label>
+                        <!-- Custom Dropdown Container -->
+                        <div class="relative w-full" id="dropdown-topic-container">
+                            <input type="hidden" id="topic_id" value="">
+                            <button type="button" onclick="toggleDropdownTopic(event)" class="w-full px-5 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#000] transition-all flex justify-between items-center rounded-none text-black font-black text-base focus:outline-none">
+                                <span id="topic-label" data-i18n="opt_no_topic">Không phân loại</span>
+                                <svg class="w-5 h-5 text-black flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <ul id="dropdown-topic-menu" class="hidden absolute top-full left-0 mt-2 w-full bg-white border-4 border-black shadow-[6px_6px_0px_#000] z-50 rounded-none max-h-48 overflow-y-auto">
+                                <li>
+                                    <button type="button" onclick="selectTopicVal('', 'Không phân loại', 'opt_no_topic')" class="w-full text-left px-5 py-3 hover:bg-[#FF69B4] text-black hover:text-white font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="opt_no_topic">Không phân loại</button>
+                                </li>
+                                {% for topic in topics %}
+                                <li>
+                                    <button type="button" onclick="selectTopicVal('{{ topic.id }}', '{{ topic.name|escapejs }}', null)" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0">{{ topic.name }}</button>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_pos">Loại từ</label>
+                        <!-- Custom Dropdown Container -->
+                        <div class="relative w-full" id="dropdown-pos-container">
+                            <input type="hidden" id="part_of_speech" value="N">
+                            <button type="button" onclick="toggleDropdownPos(event)" class="w-full px-5 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#000] transition-all flex justify-between items-center rounded-none text-black font-black text-base focus:outline-none">
+                                <span id="pos-label" data-i18n="opt_n">Danh từ (Noun)</span>
+                                <svg class="w-5 h-5 text-black flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            <ul id="dropdown-pos-menu" class="hidden absolute top-full left-0 mt-2 w-full bg-white border-4 border-black shadow-[6px_6px_0px_#000] z-50 rounded-none max-h-48 overflow-y-auto">
+                                <li><button type="button" onclick="selectPosVal('N', 'Danh từ (Noun)', 'opt_n')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="opt_n">Danh từ (Noun)</button></li>
+                                <li><button type="button" onclick="selectPosVal('V', 'Động từ (Verb)', 'opt_v')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="opt_v">Động từ (Verb)</button></li>
+                                <li><button type="button" onclick="selectPosVal('ADJ', 'Tính từ (Adjective)', 'opt_adj')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="opt_adj">Tính từ (Adjective)</button></li>
+                                <li><button type="button" onclick="selectPosVal('ADV', 'Trạng từ (Adverb)', 'opt_adv')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="opt_adv">Trạng từ (Adverb)</button></li>
+                                <li><button type="button" onclick="selectPosVal('PREP', 'Giới từ (Preposition)', 'opt_prep')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="opt_prep">Giới từ (Preposition)</button></li>
+                                <li><button type="button" onclick="selectPosVal('CONJ', 'Liên từ (Conjunction)', 'opt_conj')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="opt_conj">Liên từ (Conjunction)</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_pron">Phiên âm (IPA)</label>
+                        <input type="text" id="pronunciation" class="w-full px-5 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 shadow-[4px_4px_0px_#000] focus:shadow-none transition-all font-serif italic text-black" data-i18n-placeholder="ph_pron" placeholder="vd: ˈæp.əl">
+                    </div>
+                </div>
+                
+                <div class="mb-6 relative">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-black text-black tracking-widest" data-i18n="label_example_en">Câu ví dụ (Tiếng Anh)</label>
+                        <button type="button" id="btn-check-ai" onclick="checkGrammarAI()" class="inline-flex items-center text-xs font-black px-3 py-1 bg-white text-black border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[2px_2px_0px_#000] hover:shadow-none transition-all">
+                            <span id="ai-btn-text" data-i18n="btn_check_ai">🤖 Check bằng AI</span>
+                            <svg class="animate-spin ml-2 h-3 w-3 text-black hidden" id="ai-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <textarea id="example_sentence" rows="2" class="w-full px-5 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 shadow-[4px_4px_0px_#000] focus:shadow-none transition-all font-bold text-black italic" data-i18n-placeholder="ph_example_en" placeholder="I eat an apple."></textarea>
+                    
+                    <!-- AI Result Box -->
+                    <div id="ai-result-box" class="hidden mt-3 p-4 bg-[#FF69B4] border-4 border-black shadow-[4px_4px_0px_#000] text-sm">
+                        <div id="ai-result-content"></div>
+                        <button type="button" id="btn-apply-ai" class="mt-3 px-4 py-2 bg-white text-black border-4 border-black text-xs font-black shadow-[2px_2px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all hidden" data-i18n="btn_apply_ai">
+                            Áp dụng câu sửa này
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_example_vi">Nghĩa câu ví dụ</label>
+                    <textarea id="example_meaning" rows="2" class="w-full px-5 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 shadow-[4px_4px_0px_#000] focus:shadow-none transition-all font-bold text-black" data-i18n-placeholder="ph_example_vi" placeholder="Tôi ăn một quả táo."></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 font-black text-black bg-white border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all" data-i18n="btn_cancel">Hủy bỏ</button>
+                    <button type="submit" id="save-btn" class="px-8 py-3 font-black text-black bg-cyan-300 border-4 border-black shadow-[4px_4px_0px_#000] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center">
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-black hidden" id="save-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span id="save-btn-text" data-i18n="btn_save_word">Lưu từ vựng</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Topic Modal -->
+    <div id="topic-modal" class="fixed inset-0 z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeTopicModal()"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative w-full max-w-md bg-white border-4 border-black shadow-[12px_12px_0px_#000] p-8 transform scale-95 transition-transform duration-300" id="topic-modal-content">
+            <button onclick="closeTopicModal()" class="absolute top-6 right-6 p-2 text-black hover:bg-rose-400 hover:text-white border-4 border-transparent hover:border-black transition-all hover:shadow-[4px_4px_0px_#000]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            
+            <h2 class="text-3xl font-black tracking-tight text-black mb-6" data-i18n="modal_topic_title">Thêm chủ đề mới</h2>
+            
+            <form id="topic-form" onsubmit="saveTopic(event)">
+                <div class="mb-6">
+                    <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_topic_name">Tên chủ đề *</label>
+                    <input type="text" id="topic_name" required class="w-full px-5 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 shadow-[4px_4px_0px_#000] focus:shadow-none transition-all font-black text-black" data-i18n-placeholder="ph_topic_name" placeholder="vd: TOEIC, IT, Travel...">
+                </div>
+                
+                <div id="topic-msg" class="hidden mb-4 p-4 border-4 border-black shadow-[4px_4px_0px_#000] text-sm font-black text-center text-black"></div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeTopicModal()" class="px-5 py-2 font-black text-black bg-white border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all" data-i18n="btn_cancel_topic">Hủy</button>
+                    <button type="submit" id="save-topic-btn" class="px-6 py-2 font-black text-black bg-yellow-300 border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all" data-i18n="btn_save_topic">Lưu chủ đề</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-8 right-8 z-[100] flex flex-col items-end space-y-4 pointer-events-none"></div>
+
+</div>
+
+<!-- Logic Javascript cho Modal và AJAX -->
+<script>
+    // --- LANGUAGE SWITCHER SYSTEM MOVED TO base.html ---
+
+    function toggleDropdownTopic(event) {
+        if(event) event.stopPropagation();
+        document.getElementById('dropdown-topic-menu').classList.toggle('hidden');
+        document.getElementById('dropdown-pos-menu').classList.add('hidden');
+    }
+
+    function toggleDropdownPos(event) {
+        if(event) event.stopPropagation();
+        document.getElementById('dropdown-pos-menu').classList.toggle('hidden');
+        document.getElementById('dropdown-topic-menu').classList.add('hidden');
+    }
+
+    function selectTopicVal(value, label, i18nKey) {
+        document.getElementById('topic_id').value = value;
+        const labelEl = document.getElementById('topic-label');
+        labelEl.textContent = label;
+        if(i18nKey) labelEl.setAttribute('data-i18n', i18nKey);
+        else labelEl.removeAttribute('data-i18n');
+        document.getElementById('dropdown-topic-menu').classList.add('hidden');
+    }
+
+    function selectPosVal(value, label, i18nKey) {
+        document.getElementById('part_of_speech').value = value;
+        const labelEl = document.getElementById('pos-label');
+        labelEl.textContent = label;
+        if(i18nKey) labelEl.setAttribute('data-i18n', i18nKey);
+        else labelEl.removeAttribute('data-i18n');
+        document.getElementById('dropdown-pos-menu').classList.add('hidden');
+    }
+
+    document.addEventListener('click', function(event) {
+        const tContainer = document.getElementById('dropdown-topic-container');
+        const tMenu = document.getElementById('dropdown-topic-menu');
+        if (tContainer && tMenu && !tContainer.contains(event.target)) tMenu.classList.add('hidden');
+
+        const pContainer = document.getElementById('dropdown-pos-container');
+        const pMenu = document.getElementById('dropdown-pos-menu');
+        if (pContainer && pMenu && !pContainer.contains(event.target)) pMenu.classList.add('hidden');
+    });
+
+    const modal = document.getElementById('word-modal');
+    const modalContent = document.getElementById('modal-content');
+    const form = document.getElementById('word-form');
+    const csrfToken = "{{ csrf_token }}";
+
+    function openModal() {
+        form.reset();
+        document.getElementById('word-id').value = '';
+        document.getElementById('modal-title').textContent = t('modal_add_title');
+        
+        // Reset custom dropdowns
+        selectTopicVal('', 'Không phân loại', 'opt_no_topic');
+        selectPosVal('N', 'Danh từ (Noun)', 'opt_n');
+        
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }
+
+    function closeModal() {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modalContent.classList.add('scale-95');
+        modalContent.classList.remove('scale-100');
+    }
+
+    function editWord(btn) {
+        const id = btn.dataset.id;
+        document.getElementById('word-id').value = id;
+        document.getElementById('english_word').value = document.getElementById(`td-en-${id}`).textContent.trim();
+        document.getElementById('vietnamese_meaning').value = document.getElementById(`td-vi-${id}`).textContent.trim();
+        document.getElementById('pronunciation').value = document.getElementById(`td-pron-${id}`).textContent.trim();
+        document.getElementById('example_sentence').value = document.getElementById(`td-ex-en-${id}`).textContent.trim();
+        document.getElementById('example_meaning').value = document.getElementById(`td-ex-vi-${id}`).textContent.trim();
+        
+        const posVal = document.getElementById(`td-pos-${id}`).textContent.trim();
+        const posMap = { 'N':'Danh từ (Noun)','V':'Động từ (Verb)','ADJ':'Tính từ (Adjective)','ADV':'Trạng từ (Adverb)','PREP':'Giới từ (Preposition)','CONJ':'Liên từ (Conjunction)' };
+        const posI18nMap = { 'N':'opt_n','V':'opt_v','ADJ':'opt_adj','ADV':'opt_adv','PREP':'opt_prep','CONJ':'opt_conj' };
+        selectPosVal(posVal, posMap[posVal] || posVal, posI18nMap[posVal] || null);
+
+        const topicIdVal = document.getElementById(`td-topic-${id}`).getAttribute('data-topic-id') || '';
+        const topicNameVal = document.getElementById(`td-topic-${id}`).textContent.trim();
+        if(!topicIdVal || topicNameVal === 'Chung') {
+            selectTopicVal('', 'Không phân loại', 'opt_no_topic');
+        } else {
+            selectTopicVal(topicIdVal, topicNameVal, null);
+        }
+        
+        document.getElementById('modal-title').textContent = t('modal_edit_title');
+        
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+    }
+
+    function saveWord(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('save-btn-text');
+        const spinner = document.getElementById('save-spinner');
+        const parentBtn = document.getElementById('save-btn');
+        
+        parentBtn.disabled = true;
+        spinner.classList.remove('hidden');
+        
+        const data = {
+            id: document.getElementById('word-id').value,
+            english_word: document.getElementById('english_word').value,
+            vietnamese_meaning: document.getElementById('vietnamese_meaning').value,
+            part_of_speech: document.getElementById('part_of_speech').value,
+            pronunciation: document.getElementById('pronunciation').value,
+            example_sentence: document.getElementById('example_sentence').value,
+            example_meaning: document.getElementById('example_meaning').value,
+            topic_id: document.getElementById('topic_id').value || null
+        };
+
+        fetch('/api/word/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(resData => {
+            parentBtn.disabled = false;
+            spinner.classList.add('hidden');
+            
+            if(resData.success) {
+                closeModal();
+                showToast(t('toast_save_success'), "success");
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(resData.error, "error");
+            }
+        })
+        .catch(err => {
+            parentBtn.disabled = false;
+            spinner.classList.add('hidden');
+            showToast(t('toast_network_error'), "error");
+            console.error(err);
+        });
+    }
+
+    function deleteWord(btn) {
+        const id = btn.dataset.id;
+        if(confirm(t('confirm_delete'))) {
+            fetch('/api/word/delete/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({id: id})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    const row = document.getElementById(`row-${id}`);
+                    if(row) row.remove();
+                    showToast(t('toast_delete_success'), "success");
+                } else {
+                    showToast('Lỗi: ' + data.error, "error");
+                }
+            });
+        }
+    }
+
+    // Topic Modal Logic
+    const topicModal = document.getElementById('topic-modal');
+    const topicModalContent = document.getElementById('topic-modal-content');
+    const topicForm = document.getElementById('topic-form');
+
+    function openTopicModal() {
+        topicForm.reset();
+        topicModal.classList.remove('opacity-0', 'pointer-events-none');
+        topicModalContent.classList.remove('scale-95');
+        topicModalContent.classList.add('scale-100');
+    }
+
+    function closeTopicModal() {
+        topicModal.classList.add('opacity-0', 'pointer-events-none');
+        topicModalContent.classList.remove('scale-100');
+        topicModalContent.classList.add('scale-95');
+    }
+
+    function saveTopic(e) {
+        e.preventDefault();
+        const btn = document.getElementById('save-topic-btn');
+        const origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = t('status_saving');
+        
+        const name = document.getElementById('topic_name').value;
+        
+        fetch('/api/topic/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ name: name })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.textContent = origText;
+            
+            if (data.success) {
+                const menu = document.getElementById('dropdown-topic-menu');
+                
+                // Add to custom dropdown if not exists
+                if(!menu.innerHTML.includes(`selectTopicVal('${data.topic.id}'`)) {
+                    const li = document.createElement('li');
+                    // Escape single quotes in topic name
+                    const safeName = data.topic.name.replace(/'/g, "\\'");
+                    li.innerHTML = `<button type="button" onclick="selectTopicVal('${data.topic.id}', '${safeName}', null)" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0">${data.topic.name}</button>`;
+                    menu.appendChild(li);
+                }
+                
+                closeTopicModal();
+                openModal();
+                
+                // Automatically select the new topic
+                selectTopicVal(data.topic.id, data.topic.name, null);
+                
+                showToast(t('toast_topic_success'), "success");
+            } else {
+                showToast(data.error, "error");
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.textContent = origText;
+            showToast(t('toast_network_error'), "error");
+            console.error(err);
+        });
+    }
+
+    // Drag and Drop Upload Logic
+    const dropZone = document.getElementById('drop-zone');
+    const uploadLoading = document.getElementById('upload-loading');
+
+    function dragOverHandler(ev) {
+        ev.preventDefault();
+        dropZone.classList.add('bg-indigo-50', 'border-indigo-400');
+    }
+
+    function dragLeaveHandler(ev) {
+        ev.preventDefault();
+        dropZone.classList.remove('bg-indigo-50', 'border-indigo-400');
+    }
+
+    function dropHandler(ev) {
+        ev.preventDefault();
+        dropZone.classList.remove('bg-indigo-50', 'border-indigo-400');
+        
+        if (ev.dataTransfer.items) {
+            const item = ev.dataTransfer.items[0];
+            if (item.kind === 'file') {
+                const file = item.getAsFile();
+                uploadFile(file);
+            }
+        }
+    }
+
+    function handleFileSelect(ev) {
+        const file = ev.target.files[0];
+        if (file) {
+            uploadFile(file);
+        }
+        ev.target.value = '';
+    }
+
+    function uploadFile(file) {
+        if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
+            showToast(t('toast_import_invalid'), 'error');
+            return;
+        }
+        
+        uploadLoading.classList.remove('opacity-0', 'pointer-events-none');
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        fetch('/api/word/import/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            uploadLoading.classList.add('opacity-0', 'pointer-events-none');
+            if (data.success) {
+                const msg = t('toast_import_success').replace('{count}', data.count);
+                showToast(msg, 'success');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showToast(`Lỗi: ${data.error}`, 'error');
+            }
+        })
+        .catch(err => {
+            uploadLoading.classList.add('opacity-0', 'pointer-events-none');
+            showToast(t('toast_network_error'), 'error');
+            console.error(err);
+        });
+    }
+
+    // Luxury Toast Notification System
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        
+        const isSuccess = type === 'success';
+        const borderColor = isSuccess ? 'border-emerald-200' : 'border-rose-200';
+        const bgColor = 'bg-white/95';
+        const iconColor = isSuccess ? 'text-emerald-500' : 'text-rose-500';
+        const iconBg = isSuccess ? 'bg-emerald-50' : 'bg-rose-50';
+        
+        const iconSvg = isSuccess 
+            ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+
+        toast.className = `transform translate-x-full opacity-0 transition-all duration-500 ease-out flex items-center p-4 pr-6 ${bgColor} backdrop-blur-xl border ${borderColor} rounded-[1rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] max-w-sm pointer-events-auto`;
+        
+        toast.innerHTML = `
+            <div class="flex-shrink-0 w-10 h-10 ${iconBg} rounded-full flex items-center justify-center ${iconColor} mr-4">
+                ${iconSvg}
+            </div>
+            <div>
+                <p class="text-slate-800 font-bold text-sm tracking-tight">${isSuccess ? t('msg_success') : t('msg_error')}</p>
+                <p class="text-slate-500 font-medium text-xs mt-0.5">${message}</p>
+            </div>
+            <button onclick="this.parentElement.remove()" class="ml-4 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-x-full', 'opacity-0');
+        });
+        
+        setTimeout(() => {
+            toast.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => {
+                if(toast.parentElement) toast.remove();
+            }, 500);
+        }, 3500);
+    }
+
+    // AI Generate Vocab File Logic
+    function generateVocabFile() {
+        const promptInput = document.getElementById('ai-generator-prompt');
+        const promptText = promptInput.value.trim();
+        
+        if (!promptText) {
+            showToast(t('toast_req_prompt'), "error");
+            return;
+        }
+        
+        const btnText = document.getElementById('gen-btn-text');
+        const spinner = document.getElementById('gen-spinner');
+        const genLoading = document.getElementById('gen-loading');
+        
+        btnText.textContent = t('status_generating');
+        spinner.classList.remove('hidden');
+        genLoading.classList.remove('opacity-0', 'pointer-events-none');
+        
+        fetch('/api/word/generate-file/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ prompt: promptText })
+        })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(errData => { throw new Error(errData.error); });
+            }
+            
+            const disposition = res.headers.get('Content-Disposition');
+            let filename = 'ai_generated_vocab.csv';
+            if (disposition && disposition.indexOf('filename=') !== -1) {
+                const matches = /filename="([^"]+)"/.exec(disposition);
+                if (matches != null && matches[1]) filename = matches[1];
+            }
+            
+            return res.blob().then(blob => ({ blob, filename }));
+        })
+        .then(({blob, filename}) => {
+            btnText.textContent = t('btn_gen_csv');
+            spinner.classList.add('hidden');
+            genLoading.classList.add('opacity-0', 'pointer-events-none');
+            
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            promptInput.value = '';
+            const msg = t('toast_gen_success').replace('{filename}', filename);
+            showToast(msg, "success");
+        })
+        .catch(err => {
+            btnText.textContent = t('btn_gen_csv');
+            spinner.classList.add('hidden');
+            genLoading.classList.add('opacity-0', 'pointer-events-none');
+            showToast(err.message || t('toast_network_error'), "error");
+            console.error(err);
+        });
+    }
+
+    // AI Grammar Check Logic
+    function checkGrammarAI() {
+        const sentenceInput = document.getElementById('example_sentence');
+        const sentence = sentenceInput.value.trim();
+        
+        if (!sentence) {
+            showToast(t('toast_req_sentence'), "error");
+            return;
+        }
+        
+        const btnText = document.getElementById('ai-btn-text');
+        const spinner = document.getElementById('ai-spinner');
+        const resultBox = document.getElementById('ai-result-box');
+        const resultContent = document.getElementById('ai-result-content');
+        const btnApply = document.getElementById('btn-apply-ai');
+        
+        btnText.textContent = t('status_checking');
+        spinner.classList.remove('hidden');
+        resultBox.classList.add('hidden');
+        btnApply.classList.add('hidden');
+        
+        fetch('/api/word/check-grammar/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ sentence: sentence })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btnText.textContent = t('btn_check_ai');
+            spinner.classList.add('hidden');
+            
+            if (data.success) {
+                const ai = data.data;
+                resultBox.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'bg-amber-50', 'border-amber-200');
+                
+                if (ai.is_correct) {
+                    resultBox.classList.add('bg-emerald-50', 'border-emerald-200');
+                    resultContent.innerHTML = `<p class="text-emerald-700 font-bold flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg> ${t('ai_correct')}</p>`;
+                    showToast(t('toast_perfect'), "success");
+                } else {
+                    resultBox.classList.add('bg-amber-50', 'border-amber-200');
+                    resultContent.innerHTML = `
+                        <p class="text-amber-700 font-bold mb-1">${t('ai_need_fix')}</p>
+                        <p class="text-slate-600 mb-2"><span class="font-semibold text-rose-500">${t('ai_error')}</span> ${ai.error_found}</p>
+                        <p class="text-slate-600 mb-2"><span class="font-semibold text-indigo-500">${t('ai_suggest')}</span> <span class="font-bold text-slate-800 italic">"${ai.suggestion}"</span></p>
+                        <p class="text-slate-500 text-xs">💡 ${ai.explanation}</p>
+                    `;
+                    
+                    btnApply.classList.remove('hidden');
+                    btnApply.onclick = function() {
+                        sentenceInput.value = ai.suggestion;
+                        resultBox.classList.add('hidden');
+                        showToast(t('toast_ai_applied'), "success");
+                    };
+                    showToast(t('toast_ai_found_error'), "error");
+                }
+            } else {
+                showToast(data.error, "error");
+            }
+        })
+        .catch(err => {
+            btnText.textContent = t('btn_check_ai');
+            spinner.classList.add('hidden');
+            showToast(t('toast_network_error'), "error");
+            console.error(err);
+        });
+    }
+</script>
+{% endblock %}

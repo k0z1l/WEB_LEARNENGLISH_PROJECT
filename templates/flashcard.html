@@ -1,0 +1,613 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    .perspective-1000 { perspective: 1000px; }
+    .flashcard-inner { 
+        transform-style: preserve-3d; 
+        transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+    .is-flipped { transform: rotateY(180deg) !important; }
+    .face-front, .face-back {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        width: 100%;
+        height: 100%;
+    }
+    .face-back { transform: rotateY(180deg); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl w-full relative flex flex-col items-center">
+    
+    <!-- Title / Progress Header -->
+    <div class="mb-4 text-center header-info">
+        <h1 class="text-3xl font-bold tracking-tight text-slate-800 mb-2" data-i18n="flashcard_title">Học từ vựng</h1>
+        <p class="text-slate-400 text-sm font-medium tracking-wide">
+            <span data-i18n="flashcard_card_progress">Thẻ</span> <span id="current-index" class="text-indigo-500 font-semibold">1</span> / <span id="total-index">{{ words|length }}</span>
+        </p>
+    </div>
+
+    <!-- Topic Filter Dropdown -->
+    <div class="mb-8 w-full flex justify-center z-30">
+        <!-- Custom Dropdown Container -->
+        <div class="relative inline-block w-full max-w-[240px]" id="custom-dropdown-container">
+            <input type="hidden" id="topic-filter" value="ALL">
+            <!-- Trigger Button -->
+            <button type="button" id="dropdown-trigger" onclick="toggleDropdown(event)" class="w-full px-5 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#000] transition-all flex justify-between items-center rounded-none text-black font-black text-base focus:outline-none">
+                <span id="dropdown-label" data-i18n="flashcard_all_topics">Tất cả chủ đề</span>
+                <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <ul id="dropdown-menu" class="hidden absolute top-full left-0 mt-2 w-full bg-white border-4 border-black shadow-[6px_6px_0px_#000] z-50 rounded-none max-h-60 overflow-y-auto">
+                <li>
+                    <button type="button" onclick="selectTopic('ALL', 'Tất cả chủ đề')" class="w-full text-left px-5 py-3 hover:bg-[#FF69B4] text-black hover:text-white font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="flashcard_all_topics">
+                        Tất cả chủ đề
+                    </button>
+                </li>
+                {% for topic in topics %}
+                <li>
+                    <button type="button" onclick="selectTopic('{{ topic.id }}', '{{ topic.name|escapejs }}')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0">
+                        {{ topic.name }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <script>
+            function toggleDropdown(event) {
+                if(event) event.stopPropagation();
+                document.getElementById('dropdown-menu').classList.toggle('hidden');
+            }
+
+            function selectTopic(value, label) {
+                document.getElementById('topic-filter').value = value;
+                
+                const labelEl = document.getElementById('dropdown-label');
+                labelEl.textContent = label;
+                if(value === 'ALL') {
+                    labelEl.setAttribute('data-i18n', 'flashcard_all_topics');
+                } else {
+                    labelEl.removeAttribute('data-i18n');
+                }
+                
+                document.getElementById('dropdown-menu').classList.add('hidden');
+                
+                if(typeof filterByTopic === 'function') filterByTopic();
+            }
+
+            document.addEventListener('click', function(event) {
+                const container = document.getElementById('custom-dropdown-container');
+                const menu = document.getElementById('dropdown-menu');
+                if (container && menu && !container.contains(event.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+        </script>
+    </div>
+
+    <!-- Flashcard 3D Container -->
+    <div class="perspective-1000 w-full h-[420px] cursor-pointer group transition-transform duration-300" id="flashcard-container">
+        
+        <!-- Subtle Action Buttons -->
+        <div class="absolute top-14 right-4 z-20 flex space-x-2 opacity-50 hover:opacity-100 transition-opacity duration-300" id="card-actions">
+            <button onclick="openEditModal(event)" class="p-2 bg-yellow-300 border-2 border-black text-black hover:bg-yellow-400 transition-all shadow-[2px_2px_0px_#000]" title="Sửa từ vựng">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+            </button>
+            <button onclick="deleteCurrentWord(event)" class="p-2 bg-rose-400 border-2 border-black text-black hover:bg-rose-500 transition-all shadow-[2px_2px_0px_#000]" title="Xóa từ vựng">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Inner Rotating Card -->
+        <!-- Inner Rotating Card -->
+        <div id="flashcard-inner" class="flashcard-inner shadow-[8px_8px_0px_#000]">
+            
+            <!-- Front Face -->
+            <div class="face-front bg-white border-4 border-black flex flex-col">
+                <!-- Win98 Title Bar -->
+                <div class="bg-[#FF69B4] border-b-4 border-black px-4 py-2 flex justify-between items-center w-full">
+                    <div class="text-white font-bold tracking-widest text-xs font-y2k-body">word_viewer.exe</div>
+                    <div class="flex space-x-2">
+                        <div class="w-5 h-5 bg-white border-2 border-black flex items-center justify-center text-[10px] font-bold">_</div>
+                        <div class="w-5 h-5 bg-white border-2 border-black flex items-center justify-center text-[10px] font-bold">□</div>
+                        <div class="w-5 h-5 bg-white border-2 border-black flex items-center justify-center text-[10px] font-bold">X</div>
+                    </div>
+                </div>
+                <div class="flex-grow flex flex-col items-center justify-center p-8 text-center relative">
+                    <span id="pos-display" class="px-4 py-1.5 bg-yellow-300 border-2 border-black text-black text-[11px] font-bold  tracking-widest mb-8 shadow-[2px_2px_0px_#000]"></span>
+                    <h2 id="word-display" class="text-[3.5rem] font-black text-black mb-2 tracking-tight leading-none" style="font-family: 'Righteous', cursive;"></h2>
+                    <p id="pronunciation-display" class="text-xl text-slate-600 font-bold tracking-wide font-serif italic mb-8"></p>
+                    <button id="tts-btn" class="p-4 bg-cyan-300 border-2 border-black text-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all focus:outline-none mb-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.5 10H2a1 1 0 00-1 1v2a1 1 0 001 1h3.5l4.5 4.5V5.5L5.5 10z" /></svg>
+                    </button>
+                    <div class="absolute bottom-4 text-xs text-black font-bold tracking-widest " data-i18n="flashcard_click_flip">Nhấn vào thẻ để lật</div>
+                </div>
+            </div>
+            
+            <!-- Back Face -->
+            <div class="face-back bg-[#00FFFF] border-4 border-black flex flex-col">
+                <!-- Win98 Title Bar -->
+                <div class="bg-[#FF69B4] border-b-4 border-black px-4 py-2 flex justify-between items-center w-full">
+                    <div class="text-white font-bold tracking-widest text-xs font-y2k-body">meaning_viewer.exe</div>
+                    <div class="flex space-x-2">
+                        <div class="w-5 h-5 bg-white border-2 border-black flex items-center justify-center text-[10px] font-bold">_</div>
+                        <div class="w-5 h-5 bg-white border-2 border-black flex items-center justify-center text-[10px] font-bold">□</div>
+                        <div class="w-5 h-5 bg-white border-2 border-black flex items-center justify-center text-[10px] font-bold">X</div>
+                    </div>
+                </div>
+                <div class="flex-grow flex flex-col items-center justify-center p-8 text-center relative">
+                    <div class="w-12 h-12 bg-white border-4 border-black flex items-center justify-center mb-6 shadow-[4px_4px_0px_#000]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 16h-1v-4h-1m1-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <h2 id="meaning-display" class="text-3xl font-black text-black mb-8 leading-tight" style="font-family: 'Righteous', cursive;"></h2>
+                    <div class="w-full h-1 bg-black my-2"></div>
+                    <div class="mt-4 flex flex-col gap-2.5 w-[92%] mx-auto bg-white border-4 border-black p-4 md:p-5 shadow-[4px_4px_0px_#000]">
+                        <p id="example-en-display" class="text-lg text-black italic font-bold leading-relaxed"></p>
+                        <p id="example-vi-display" class="text-sm text-slate-700 font-bold"></p>
+                    </div>
+                    <div class="absolute bottom-4 text-xs text-black font-bold tracking-widest  bg-white border-2 border-black px-2 py-1 shadow-[2px_2px_0px_#000]" data-i18n="flashcard_click_return">Nhấn để quay lại</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex space-x-5 mt-10 w-full opacity-0 translate-y-8 transition-all duration-500 ease-out pointer-events-none" id="action-buttons">
+        <button id="review-btn" class="flex-1 py-4 px-6 bg-[#FF69B4] border-4 border-black text-black font-black text-sm tracking-widest hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-[8px_8px_0px_#000] transition-all duration-200 " data-i18n="flashcard_btn_review">Cần học lại</button>
+        <button id="learned-btn" class="flex-1 py-4 px-6 bg-emerald-400 border-4 border-black text-black font-black text-sm tracking-widest hover:translate-x-1 hover:translate-y-1 hover:shadow-none shadow-[8px_8px_0px_#000] transition-all duration-200 " data-i18n="flashcard_btn_learned">Đã thuộc</button>
+    </div>
+    
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center mt-6 bg-white border-4 border-black p-12 shadow-[8px_8px_0px_#000]">
+        <div class="w-24 h-24 bg-yellow-300 border-4 border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_#000]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <h2 class="text-2xl font-black text-black mb-3 tracking-tight " data-i18n="flashcard_empty_title">Hết từ vựng!</h2>
+        <p class="text-black font-bold" id="empty-msg" data-i18n="flashcard_empty_msg">Chưa có từ vựng nào trong chủ đề này, hoặc bạn đã học hết.</p>
+    </div>
+</div>
+
+<!-- Edit Modal Neo-brutalism -->
+<div id="edit-modal" class="fixed inset-0 z-[100] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeEditModal()"></div>
+    
+    <!-- Modal Content -->
+    <div class="relative w-full max-w-lg bg-white border-4 border-black shadow-[12px_12px_0px_#000] rounded-none transform scale-95 transition-transform duration-300 flex flex-col" id="edit-modal-content">
+        
+        <!-- Win98 Title Bar -->
+        <div class="bg-[#00FFFF] border-b-4 border-black px-4 py-3 flex justify-between items-center w-full">
+            <div class="text-black font-black tracking-widest text-sm" data-i18n="flashcard_modal_edit_title">Sửa từ vựng nhanh</div>
+            <div class="flex space-x-2">
+                <button type="button" class="w-6 h-6 bg-white border-2 border-black flex items-center justify-center text-xs font-black shadow-[2px_2px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all">_</button>
+                <button type="button" class="w-6 h-6 bg-white border-2 border-black flex items-center justify-center text-xs font-black shadow-[2px_2px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all">□</button>
+                <button type="button" onclick="closeEditModal()" class="w-6 h-6 bg-[#FF69B4] border-2 border-black flex items-center justify-center text-xs font-black text-white shadow-[2px_2px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all">X</button>
+            </div>
+        </div>
+
+        <div class="p-8">
+            <form id="edit-form" onsubmit="submitEditForm(event)">
+                <input type="hidden" id="edit_word_id">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_english">Từ tiếng Anh *</label>
+                        <input type="text" id="edit_english_word" required class="w-full px-4 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 rounded-none shadow-[4px_4px_0px_#000] transition-all font-black text-black">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_vietnamese">Nghĩa tiếng Việt *</label>
+                        <input type="text" id="edit_vietnamese_meaning" required class="w-full px-4 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 rounded-none shadow-[4px_4px_0px_#000] transition-all font-bold text-black">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_pos">Loại từ</label>
+                        <input type="text" id="edit_part_of_speech" class="w-full px-4 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 rounded-none shadow-[4px_4px_0px_#000] transition-all font-bold text-black">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_topic">Chủ đề</label>
+                        <select id="edit_topic_id" class="w-full px-4 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 rounded-none shadow-[4px_4px_0px_#000] transition-all font-bold text-black appearance-none cursor-pointer">
+                            <option value="" data-i18n="opt_no_topic">Không phân loại</option>
+                            {% for topic in topics %}
+                            <option value="{{ topic.id }}">{{ topic.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_example_en">Câu ví dụ (Tiếng Anh)</label>
+                    <textarea id="edit_example_en" rows="2" class="w-full px-4 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 rounded-none shadow-[4px_4px_0px_#000] transition-all font-bold text-black italic"></textarea>
+                </div>
+                <div class="mb-8">
+                    <label class="block text-sm font-black text-black tracking-widest mb-2" data-i18n="label_example_vi">Nghĩa câu ví dụ</label>
+                    <textarea id="edit_example_vi" rows="2" class="w-full px-4 py-3 bg-white border-4 border-black focus:outline-none focus:ring-0 rounded-none shadow-[4px_4px_0px_#000] transition-all font-bold text-black"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditModal()" class="px-5 py-3 font-black text-black bg-white border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all" data-i18n="btn_cancel">Hủy bỏ</button>
+                    <button type="submit" id="save-edit-btn" class="px-6 py-3 font-black text-black bg-yellow-300 border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all" data-i18n="flashcard_btn_save_edit">Lưu cập nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Confirm Modal -->
+<div id="custom-confirm-modal" class="fixed inset-0 z-[110] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeConfirmModal()"></div>
+    <div class="relative w-full max-w-sm bg-white border-4 border-black shadow-[8px_8px_0px_#000] rounded-none transform scale-95 transition-transform duration-300 flex flex-col" id="custom-confirm-content">
+        <!-- Win98 Title Bar -->
+        <div class="bg-rose-500 border-b-4 border-black px-4 py-2 flex justify-between items-center w-full">
+            <div class="text-white font-black tracking-widest text-xs">warning.exe</div>
+            <button type="button" onclick="closeConfirmModal()" class="w-5 h-5 bg-white border-2 border-black flex items-center justify-center text-[10px] font-black shadow-[2px_2px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all">X</button>
+        </div>
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-yellow-300 border-4 border-black flex items-center justify-center mx-auto mb-4 shadow-[4px_4px_0px_#000]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <p class="text-black font-black text-lg mb-6" data-i18n="msg_confirm_delete">Chắc chắn xóa từ vựng này khỏi hệ thống?</p>
+            <div class="flex justify-center space-x-3">
+                <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 font-black text-black bg-white border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all" data-i18n="btn_cancel">Hủy bỏ</button>
+                <button type="button" id="confirm-delete-btn" class="px-4 py-2 font-black text-black bg-rose-400 border-4 border-black hover:translate-x-1 hover:translate-y-1 shadow-[4px_4px_0px_#000] hover:shadow-none transition-all">Xác nhận xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification System included in Flashcard -->
+<div id="toast-container" class="fixed top-8 right-8 z-[100] flex flex-col items-end space-y-4 pointer-events-none"></div>
+
+{{ words_json|json_script:"words-data" }}
+<script>
+    const wordsDataElement = document.getElementById('words-data');
+    const originalWordsData = JSON.parse(wordsDataElement.textContent);
+
+    let wordsData = [...originalWordsData];
+    let currentIndex = 0;
+    let isFlipped = false;
+    const csrfToken = "{{ csrf_token }}";
+
+    // DOM Elements
+    const cardContainer = document.getElementById('flashcard-container');
+    const cardInner = document.getElementById('flashcard-inner');
+    const actionBtns = document.getElementById('action-buttons');
+    const emptyState = document.getElementById('empty-state');
+    const headerInfo = document.querySelector('.header-info');
+    const currentIndexEl = document.getElementById('current-index');
+    const totalIndexEl = document.getElementById('total-index');
+    
+    // Front elements
+    const wordDisplay = document.getElementById('word-display');
+    const pronDisplay = document.getElementById('pronunciation-display');
+    const posDisplay = document.getElementById('pos-display');
+    const ttsBtn = document.getElementById('tts-btn');
+
+    // Back elements
+    const meaningDisplay = document.getElementById('meaning-display');
+    const exampleEnDisplay = document.getElementById('example-en-display');
+    const exampleViDisplay = document.getElementById('example-vi-display');
+
+    function filterByTopic() {
+        const topicId = document.getElementById('topic-filter').value;
+        if (topicId === 'ALL') {
+            wordsData = [...originalWordsData];
+        } else {
+            wordsData = originalWordsData.filter(w => w.topic_id === topicId);
+        }
+        
+        currentIndex = 0;
+        isFlipped = false;
+        cardInner.classList.remove('is-flipped');
+        hideActionButtons();
+        
+        if (wordsData.length > 0) {
+            cardContainer.style.display = 'block';
+            headerInfo.style.display = 'block';
+            emptyState.classList.add('hidden');
+            loadWord(currentIndex);
+        } else {
+            showEmptyState(t('msg_empty_topic'));
+        }
+    }
+
+    function loadWord(index) {
+        if (wordsData.length === 0 || index >= wordsData.length) {
+            showEmptyState(t('msg_finished_all'));
+            return;
+        }
+
+        const data = wordsData[index];
+        totalIndexEl.textContent = wordsData.length;
+        
+        cardContainer.style.transform = 'scale(0.95)';
+        if (isFlipped) {
+            isFlipped = false;
+            cardInner.classList.remove('is-flipped');
+            hideActionButtons();
+            setTimeout(() => {
+                updateCardContent(data);
+                cardContainer.style.transform = 'scale(1)';
+            }, 300);
+        } else {
+            setTimeout(() => {
+                updateCardContent(data);
+                cardContainer.style.transform = 'scale(1)';
+            }, 150);
+        }
+        
+        currentIndexEl.textContent = index + 1;
+    }
+
+    function updateCardContent(data) {
+        wordDisplay.textContent = data.word;
+        pronDisplay.textContent = data.pronunciation ? `/${data.pronunciation}/` : '';
+        posDisplay.textContent = data.pos;
+        meaningDisplay.textContent = data.meaning;
+        exampleEnDisplay.textContent = data.exampleEn ? `"${data.exampleEn}"` : '';
+        exampleViDisplay.textContent = data.exampleVi;
+    }
+
+    function showEmptyState(msg) {
+        cardContainer.style.display = 'none';
+        actionBtns.style.display = 'none';
+        headerInfo.style.display = 'none';
+        
+        // Cập nhật thẻ message nhưng vẫn cho phép i18n quét sau nếu cần
+        const msgEl = document.getElementById('empty-msg');
+        msgEl.textContent = msg;
+        msgEl.removeAttribute('data-i18n'); // Bỏ data-i18n mặc định để hiện message động
+        
+        emptyState.classList.remove('hidden');
+    }
+
+    function showActionButtons() {
+        actionBtns.classList.remove('opacity-0', 'translate-y-8', 'pointer-events-none');
+        actionBtns.classList.add('opacity-100', 'translate-y-0');
+    }
+
+    function hideActionButtons() {
+        actionBtns.classList.remove('opacity-100', 'translate-y-0');
+        actionBtns.classList.add('opacity-0', 'translate-y-8', 'pointer-events-none');
+    }
+
+    function nextWord() {
+        currentIndex++;
+        loadWord(currentIndex);
+    }
+
+    function saveProgressAndNext(status) {
+        if (wordsData.length === 0 || currentIndex >= wordsData.length) return;
+        const currentWordId = wordsData[currentIndex].id;
+        
+        let progress = JSON.parse(localStorage.getItem('vocab_progress')) || { learned: [], review: [] };
+        progress.learned = progress.learned.filter(id => id !== currentWordId);
+        progress.review = progress.review.filter(id => id !== currentWordId);
+        
+        if (status === 'LEARNED') progress.learned.push(currentWordId);
+        else if (status === 'REVIEW') progress.review.push(currentWordId);
+        localStorage.setItem('vocab_progress', JSON.stringify(progress));
+
+        fetch('/api/word/status/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({word_id: currentWordId, status: status})
+        }).catch(e => console.log(e));
+
+        nextWord();
+    }
+
+    // --- CRUD TRỰC TIẾP TRÊN FLASHCARD ---
+    const editModal = document.getElementById('edit-modal');
+    const editModalContent = document.getElementById('edit-modal-content');
+
+    function openEditModal(e) {
+        e.stopPropagation();
+        if (wordsData.length === 0 || currentIndex >= wordsData.length) return;
+        
+        const data = wordsData[currentIndex];
+        document.getElementById('edit_word_id').value = data.id;
+        document.getElementById('edit_english_word').value = data.word;
+        document.getElementById('edit_vietnamese_meaning').value = data.meaning;
+        document.getElementById('edit_part_of_speech').value = data.pos;
+        document.getElementById('edit_topic_id').value = data.topic_id;
+        document.getElementById('edit_example_en').value = data.exampleEn;
+        document.getElementById('edit_example_vi').value = data.exampleVi;
+
+        editModal.classList.remove('opacity-0', 'pointer-events-none');
+        editModalContent.classList.remove('scale-95');
+        editModalContent.classList.add('scale-100');
+    }
+
+    function closeEditModal() {
+        editModal.classList.add('opacity-0', 'pointer-events-none');
+        editModalContent.classList.remove('scale-100');
+        editModalContent.classList.add('scale-95');
+    }
+
+    function submitEditForm(e) {
+        e.preventDefault();
+        const btn = document.getElementById('save-edit-btn');
+        const origText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = t('msg_saving');
+
+        const payload = {
+            id: document.getElementById('edit_word_id').value,
+            english_word: document.getElementById('edit_english_word').value,
+            vietnamese_meaning: document.getElementById('edit_vietnamese_meaning').value,
+            part_of_speech: document.getElementById('edit_part_of_speech').value,
+            topic_id: document.getElementById('edit_topic_id').value || null,
+            example_sentence: document.getElementById('edit_example_en').value,
+            example_meaning: document.getElementById('edit_example_vi').value,
+        };
+
+        fetch('/api/word/save/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(resData => {
+            btn.disabled = false;
+            btn.textContent = origText;
+            if(resData.success) {
+                location.reload(); // Cách đơn giản nhất để sync lại Original Array và Topic Filter
+            } else {
+                showToast(resData.error, 'error');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.textContent = origText;
+            showToast(t('msg_network_error'), 'error');
+        });
+    }
+
+    const confirmModal = document.getElementById('custom-confirm-modal');
+
+    function deleteCurrentWord(e) {
+        e.stopPropagation();
+        if (wordsData.length === 0 || currentIndex >= wordsData.length) return;
+        
+        confirmModal.classList.remove('hidden');
+        void confirmModal.offsetWidth; // trigger reflow
+        confirmModal.classList.remove('opacity-0', 'pointer-events-none');
+        document.getElementById('custom-confirm-content').classList.remove('scale-95');
+        document.getElementById('custom-confirm-content').classList.add('scale-100');
+    }
+
+    function closeConfirmModal() {
+        confirmModal.classList.add('opacity-0', 'pointer-events-none');
+        document.getElementById('custom-confirm-content').classList.add('scale-95');
+        document.getElementById('custom-confirm-content').classList.remove('scale-100');
+        setTimeout(() => confirmModal.classList.add('hidden'), 300);
+    }
+
+    document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+        const wordId = wordsData[currentIndex].id;
+        fetch('/api/word/delete/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({id: wordId})
+        }).then(res => res.json()).then(data => {
+            if(data.success) {
+                location.reload();
+            } else {
+                showToast(data.error, 'error');
+                closeConfirmModal();
+            }
+        });
+    });
+
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            alert(message);
+            return;
+        }
+        const toast = document.createElement('div');
+        const isSuccess = type === 'success';
+        const borderColor = isSuccess ? 'border-emerald-200' : 'border-rose-200';
+        const bgColor = 'bg-white/95';
+        const iconColor = isSuccess ? 'text-emerald-500' : 'text-rose-500';
+        const iconBg = isSuccess ? 'bg-emerald-50' : 'bg-rose-50';
+        
+        const iconSvg = isSuccess 
+            ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+
+        toast.className = `transform translate-x-full opacity-0 transition-all duration-500 ease-out flex items-center p-4 pr-6 ${bgColor} backdrop-blur-xl border ${borderColor} rounded-[1rem] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] max-w-sm pointer-events-auto`;
+        
+        toast.innerHTML = `
+            <div class="flex-shrink-0 w-10 h-10 ${iconBg} rounded-full flex items-center justify-center ${iconColor} mr-4">
+                ${iconSvg}
+            </div>
+            <div>
+                <p class="text-slate-800 font-bold text-sm tracking-tight">${isSuccess ? t('msg_success') : t('msg_error')}</p>
+                <p class="text-slate-500 font-medium text-xs mt-0.5">${message}</p>
+            </div>
+            <button onclick="this.parentElement.remove()" class="ml-4 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        `;
+        toastContainer.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.remove('translate-x-full', 'opacity-0'));
+        setTimeout(() => {
+            toast.classList.add('translate-x-full', 'opacity-0');
+            setTimeout(() => { if(toast.parentElement) toast.remove(); }, 500);
+        }, 3500);
+    }
+
+    // --- EVENT LISTENERS ---
+    cardContainer.addEventListener('click', (e) => {
+        if(e.target.closest('#tts-btn') || e.target.closest('#card-actions')) return;
+        isFlipped = !isFlipped;
+        if (isFlipped) {
+            cardInner.classList.add('is-flipped');
+            showActionButtons();
+        } else {
+            cardInner.classList.remove('is-flipped');
+            hideActionButtons();
+        }
+    });
+
+    ttsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if ('speechSynthesis' in window) {
+            const wordText = wordsData[currentIndex].word;
+            const utterance = new SpeechSynthesisUtterance(wordText);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            ttsBtn.classList.add('text-indigo-600', 'bg-indigo-100');
+            utterance.onend = () => ttsBtn.classList.remove('text-indigo-600', 'bg-indigo-100');
+            window.speechSynthesis.speak(utterance);
+        } else {
+            showToast(t('msg_browser_no_tts'), 'error');
+        }
+    });
+
+    document.getElementById('learned-btn').addEventListener('click', (e) => { e.stopPropagation(); saveProgressAndNext('LEARNED'); });
+    document.getElementById('review-btn').addEventListener('click', (e) => { e.stopPropagation(); saveProgressAndNext('REVIEW'); });
+
+    // Cập nhật UI ngôn ngữ động nếu Language Switcher được bấm khi đang ở trang này
+    document.addEventListener('languageChanged', (e) => {
+        // Cập nhật nút Submit
+        const btn = document.getElementById('save-edit-btn');
+        if (btn && !btn.disabled) {
+            btn.textContent = t('flashcard_btn_save_edit');
+        }
+        
+        // Cập nhật empty state nếu đang trống
+        const emptyMsgEl = document.getElementById('empty-msg');
+        if (emptyMsgEl && !emptyState.classList.contains('hidden')) {
+            if (wordsData.length === 0) {
+                if (document.getElementById('topic-filter').value === 'ALL') {
+                    emptyMsgEl.textContent = t('msg_no_system_words');
+                } else {
+                    emptyMsgEl.textContent = t('msg_empty_topic');
+                }
+            } else if (currentIndex >= wordsData.length) {
+                emptyMsgEl.textContent = t('msg_finished_all');
+            }
+        }
+    });
+
+    // Init
+    if(wordsData.length > 0) loadWord(currentIndex);
+    else showEmptyState(t('msg_no_system_words'));
+
+</script>
+{% endblock %}

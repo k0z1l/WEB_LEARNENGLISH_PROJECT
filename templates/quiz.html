@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-2xl w-full mx-auto pb-12 mt-4 relative">
+    
+    <!-- Title -->
+    <div class="mb-6 text-center header-info">
+        <h1 class="text-3xl font-extrabold tracking-tight text-slate-800 mb-2" data-i18n="quiz_title">Trắc nghiệm (Quiz)</h1>
+        <p class="text-slate-500 text-sm font-medium" data-i18n="quiz_subtitle">Kiểm tra trí nhớ của bạn với các từ vựng ngẫu nhiên.</p>
+    </div>
+
+    <!-- Topic Filter Dropdown -->
+    <div class="mb-8 w-full flex justify-center z-30 header-info">
+        <!-- Custom Dropdown Container -->
+        <div class="relative inline-block w-full max-w-[240px]" id="custom-dropdown-container">
+            <input type="hidden" id="topic-filter" value="">
+            <!-- Trigger Button -->
+            <button type="button" id="dropdown-trigger" onclick="toggleDropdown(event)" class="w-full px-5 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#000] transition-all flex justify-between items-center rounded-none text-black font-black text-base focus:outline-none">
+                <span id="dropdown-label" data-i18n="quiz_all_topics">Tất cả chủ đề</span>
+                <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <ul id="dropdown-menu" class="hidden absolute top-full left-0 mt-2 w-full bg-white border-4 border-black shadow-[6px_6px_0px_#000] z-50 rounded-none max-h-60 overflow-y-auto">
+                <li>
+                    <button type="button" onclick="selectTopic('', 'Tất cả chủ đề')" class="w-full text-left px-5 py-3 hover:bg-[#FF69B4] text-black hover:text-white font-black text-base transition-colors border-b-2 border-black last:border-0" data-i18n="quiz_all_topics">
+                        Tất cả chủ đề
+                    </button>
+                </li>
+                {% for topic in topics %}
+                <li>
+                    <button type="button" onclick="selectTopic('{{ topic.id }}', '{{ topic.name|escapejs }}')" class="w-full text-left px-5 py-3 hover:bg-[#00FFFF] text-black font-black text-base transition-colors border-b-2 border-black last:border-0">
+                        {{ topic.name }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <script>
+            function toggleDropdown(event) {
+                if(event) event.stopPropagation();
+                document.getElementById('dropdown-menu').classList.toggle('hidden');
+            }
+
+            function selectTopic(value, label) {
+                document.getElementById('topic-filter').value = value;
+                
+                const labelEl = document.getElementById('dropdown-label');
+                labelEl.textContent = label;
+                if(value === '') {
+                    labelEl.setAttribute('data-i18n', 'quiz_all_topics');
+                } else {
+                    labelEl.removeAttribute('data-i18n');
+                }
+                
+                document.getElementById('dropdown-menu').classList.add('hidden');
+                
+                if(typeof filterQuizByTopic === 'function') filterQuizByTopic();
+            }
+
+            document.addEventListener('click', function(event) {
+                const container = document.getElementById('custom-dropdown-container');
+                const menu = document.getElementById('dropdown-menu');
+                if (container && menu && !container.contains(event.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+        </script>
+    </div>
+
+    {% if not_enough_words %}
+    <!-- Guard Clause State -->
+    <div class="text-center mt-12 bg-white border-4 border-black p-12 shadow-[8px_8px_0px_#000]">
+        <div class="w-24 h-24 bg-rose-400 border-4 border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_#000]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        </div>
+        <h2 class="text-2xl font-black text-black mb-3 tracking-tight " data-i18n="quiz_error_not_enough">Thiếu dữ liệu!</h2>
+        <p class="text-black font-bold max-w-md mx-auto" data-i18n="quiz_error_desc">Hệ thống cần tối thiểu 4 từ vựng để tạo bài tập (gồm 1 đáp án đúng và 3 đáp án sai). Vui lòng thêm từ mới.</p>
+        <a href="/manage/" class="inline-block mt-8 px-8 py-3 font-black text-black bg-cyan-300 border-4 border-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all " data-i18n="quiz_btn_to_manage">Tới kho từ vựng</a>
+    </div>
+    {% else %}
+
+    <!-- Loading State -->
+    <div id="quiz-loading" class="hidden text-center mt-12 bg-white border-4 border-black p-12 shadow-[8px_8px_0px_#000]">
+        <svg class="animate-spin h-10 w-10 text-black mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-black font-bold  tracking-widest" data-i18n="quiz_loading">Đang tạo bài tập...</p>
+    </div>
+
+    <!-- Empty/Error State for AJAX -->
+    <div id="empty-state" class="hidden text-center mt-12 bg-white border-4 border-black p-12 shadow-[8px_8px_0px_#000]">
+        <div class="w-24 h-24 bg-rose-400 border-4 border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_#000]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <h2 class="text-2xl font-black text-black mb-3 tracking-tight " data-i18n="quiz_opps">Úi!</h2>
+        <p class="text-black font-bold" id="empty-msg"></p>
+    </div>
+
+    <!-- Quiz Interface -->
+    <div id="quiz-container" class="bg-white border-4 border-black shadow-[8px_8px_0px_#000] p-8 sm:p-12 relative overflow-hidden transition-all duration-300">
+        
+        <!-- Progress Bar -->
+        <div class="absolute top-0 left-0 w-full h-2 bg-slate-200 border-b-4 border-black">
+            <div id="progress-bar" class="h-full bg-[#FF69B4] border-r-4 border-black transition-all duration-500 ease-out" style="width: 0%"></div>
+        </div>
+
+        <div class="flex justify-between items-center mb-8 mt-4 border-b-4 border-black pb-4">
+            <div class="px-4 py-1.5 bg-yellow-300 text-black border-2 border-black text-xs font-black tracking-widest shadow-[2px_2px_0px_#000]">
+                <span data-i18n="quiz_question">Câu</span> <span id="current-q-num">1</span>/<span id="total-q-num">10</span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="finishQuiz()" id="submit-early-btn" class="px-4 py-1.5 bg-rose-400 text-black font-black text-xs tracking-widest border-2 border-black shadow-[2px_2px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all focus:outline-none">
+                    Nộp bài sớm
+                </button>
+                <div class="text-black font-black text-lg bg-white border-2 border-black px-3 py-1 shadow-[2px_2px_0px_#000]">
+                    <span data-i18n="quiz_score">Điểm:</span> <span id="score-display" class="text-black">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question -->
+        <div class="mb-10 text-center">
+            <p class="text-sm font-black text-black  tracking-widest mb-3 bg-cyan-300 border-2 border-black inline-block px-4 py-1 shadow-[2px_2px_0px_#000]" data-i18n="quiz_instruction">Chọn nghĩa đúng của từ</p>
+            <h2 id="question-word" class="text-5xl font-black text-black mb-2" style="font-family: 'Righteous', cursive;"></h2>
+            <p id="question-pron" class="text-xl text-slate-600 font-bold italic"></p>
+        </div>
+
+        <!-- Options -->
+        <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- Buttons dynamically generated -->
+        </div>
+
+        <div class="flex justify-center items-center w-full mt-8 opacity-0 transition-opacity duration-300" id="next-btn-container">
+            <button onclick="nextQuestion()" class="px-8 py-3 bg-[#FF69B4] text-black font-black border-4 border-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all focus:outline-none" data-i18n="quiz_btn_next">
+                Câu tiếp theo →
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen" class="hidden bg-white border-4 border-black shadow-[8px_8px_0px_#000] p-12 text-center relative overflow-hidden">
+        
+        <div class="relative z-10">
+            <div class="w-24 h-24 bg-yellow-300 border-4 border-black flex items-center justify-center mx-auto mb-6 shadow-[4px_4px_0px_#000]">
+                <span class="text-4xl">🎉</span>
+            </div>
+            
+            <h2 class="text-4xl font-black text-black mb-2 tracking-tight " style="font-family: 'Righteous', cursive;" data-i18n="quiz_finish_title">Hoàn thành!</h2>
+            <p class="text-black font-bold mb-8" data-i18n="quiz_finish_desc">Bạn đã xuất sắc vượt qua bài kiểm tra.</p>
+            
+            <div class="bg-white border-4 border-black p-6 mb-8 inline-block min-w-[200px] shadow-[4px_4px_0px_#000]">
+                <p class="text-sm font-black text-black  tracking-widest mb-2 bg-cyan-300 border-2 border-black inline-block px-3 py-1 shadow-[2px_2px_0px_#000]" data-i18n="quiz_score_label">Điểm số</p>
+                <div class="flex items-baseline justify-center space-x-2 mt-4">
+                    <span id="final-score" class="text-6xl font-black text-black tracking-tight" style="font-family: 'Righteous', cursive;">0</span>
+                    <span class="text-2xl font-black text-slate-400">/ <span id="final-total">10</span></span>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <button onclick="location.reload()" class="px-8 py-3 bg-cyan-300 text-black border-4 border-black font-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all  focus:outline-none" data-i18n="quiz_btn_retry">Làm lại</button>
+                <a href="/dashboard/" class="px-8 py-3 bg-yellow-300 text-black border-4 border-black font-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all " data-i18n="quiz_btn_dashboard">Xem dashboard</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if not not_enough_words %}
+<script>
+    let quizData = JSON.parse('{{ quiz_data_json|escapejs }}');
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let isAnswered = false;
+
+    const csrfToken = "{{ csrf_token }}";
+    
+    // DOM Elements
+    const qWord = document.getElementById('question-word');
+    const qPron = document.getElementById('question-pron');
+    const optionsContainer = document.getElementById('options-container');
+    const currentQNum = document.getElementById('current-q-num');
+    const totalQNum = document.getElementById('total-q-num');
+    const scoreDisplay = document.getElementById('score-display');
+    const progressBar = document.getElementById('progress-bar');
+    const nextBtnContainer = document.getElementById('next-btn-container');
+    const quizContainer = document.getElementById('quiz-container');
+    const resultsScreen = document.getElementById('results-screen');
+
+    function loadQuestion() {
+        if (quizData.length === 0) return;
+        
+        isAnswered = false;
+        const q = quizData[currentQuestionIndex];
+        
+        // Update UI
+        qWord.textContent = q.english_word;
+        qPron.textContent = q.pronunciation ? `/${q.pronunciation}/` : '';
+        currentQNum.textContent = currentQuestionIndex + 1;
+        totalQNum.textContent = quizData.length;
+        progressBar.style.width = `${((currentQuestionIndex) / quizData.length) * 100}%`;
+        
+        nextBtnContainer.classList.add('opacity-0');
+        nextBtnContainer.classList.add('pointer-events-none');
+        
+        // Render Options
+        optionsContainer.innerHTML = '';
+        q.options.forEach((opt, index) => {
+            let optText = opt.text.trim();
+            if (optText) {
+                optText = optText.charAt(0).toUpperCase() + optText.slice(1);
+            }
+            const btn = document.createElement('button');
+            btn.className = `option-btn w-full p-5 text-left bg-white border-4 border-black text-black font-black shadow-[4px_4px_0px_#000] hover:translate-x-1 hover:translate-y-1 hover:shadow-none hover:bg-slate-100 transition-all focus:outline-none flex items-center relative`;
+            btn.innerHTML = `<span class="inline-flex items-center justify-center w-8 h-8 bg-black text-white text-sm font-black mr-4">${String.fromCharCode(65 + index)}</span> <span>${optText}</span>`;
+            btn.onclick = () => selectOption(btn, opt.is_correct);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function selectOption(selectedBtn, isCorrect) {
+        if (isAnswered) return;
+        isAnswered = true;
+        
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(btn => {
+            btn.classList.remove('hover:translate-x-1', 'hover:translate-y-1', 'hover:shadow-none', 'hover:bg-slate-100', 'cursor-pointer');
+            btn.classList.add('opacity-50', 'cursor-default');
+            btn.onclick = null;
+        });
+        
+        selectedBtn.classList.remove('opacity-50', 'bg-white');
+        
+        if (isCorrect) {
+            selectedBtn.classList.add('bg-emerald-400');
+            score++;
+            scoreDisplay.textContent = score;
+        } else {
+            selectedBtn.classList.add('bg-rose-400');
+            
+            // Highlight the correct one
+            const correctIndex = quizData[currentQuestionIndex].options.findIndex(o => o.is_correct);
+            const correctBtn = allBtns[correctIndex];
+            correctBtn.classList.remove('opacity-50', 'bg-white');
+            correctBtn.classList.add('bg-emerald-400', 'border-dashed');
+        }
+        
+        // Show next button
+        nextBtnContainer.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex < quizData.length - 1) {
+            currentQuestionIndex++;
+            loadQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    function finishQuiz() {
+        progressBar.style.width = '100%';
+        quizContainer.classList.add('hidden');
+        resultsScreen.classList.remove('hidden');
+        
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('final-total').textContent = quizData.length;
+
+        const percentage = Math.round((score / quizData.length) * 100);
+
+        // Lưu vào LocalStorage an toàn
+        let rawHistory = localStorage.getItem('quiz_history');
+        let history = [];
+        try {
+            if (rawHistory) {
+                let parsed = JSON.parse(rawHistory);
+                if (Array.isArray(parsed)) {
+                    history = parsed;
+                }
+            }
+        } catch (e) {
+            console.error('Lỗi parse quiz_history:', e);
+            history = []; // Reset nếu lỗi
+        }
+
+        history.push({
+            score: Number(score),
+            total_questions: Number(quizData.length),
+            percentage: Number(percentage),
+            created_at: new Date().toISOString()
+        });
+        
+        localStorage.setItem('quiz_history', JSON.stringify(history));
+
+        // Sync Backend
+        fetch('/api/quiz/save/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({score: score, total_questions: quizData.length})
+        }).catch(err => console.error('Lỗi khi lưu điểm:', err));
+    }
+
+    // Lọc theo Topic qua API
+    function filterQuizByTopic() {
+        const topicId = document.getElementById('topic-filter').value;
+        
+        document.getElementById('quiz-container').classList.add('hidden');
+        document.getElementById('results-screen').classList.add('hidden');
+        document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('quiz-loading').classList.remove('hidden');
+
+        fetch(`/api/quiz/generate/?topic_id=${topicId}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('quiz-loading').classList.add('hidden');
+                if (data.success) {
+                    quizData = data.quiz_data;
+                    currentQuestionIndex = 0;
+                    score = 0;
+                    scoreDisplay.textContent = 0;
+                    document.getElementById('quiz-container').classList.remove('hidden');
+                    loadQuestion();
+                } else {
+                    document.getElementById('empty-state').classList.remove('hidden');
+                    const emptyMsgEl = document.getElementById('empty-msg');
+                    
+                    if (data.error === 'Chủ đề này chưa có từ vựng nào.') {
+                        emptyMsgEl.dataset.errorKey = 'msg_empty_topic';
+                        emptyMsgEl.textContent = t('msg_empty_topic');
+                    } else if (data.error === 'Hệ thống cần ít nhất 4 từ vựng để tạo bài Quiz.') {
+                        emptyMsgEl.dataset.errorKey = 'quiz_error_desc';
+                        emptyMsgEl.textContent = t('quiz_error_desc');
+                    } else {
+                        emptyMsgEl.dataset.errorKey = '';
+                        emptyMsgEl.textContent = data.error;
+                    }
+                }
+            })
+            .catch(err => {
+                document.getElementById('quiz-loading').classList.add('hidden');
+                alert(t('msg_quiz_load_err'));
+            });
+    }
+
+    document.addEventListener('languageChanged', (e) => {
+        // Cập nhật lại empty msg nếu có
+        const emptyMsgEl = document.getElementById('empty-msg');
+        if (emptyMsgEl && emptyMsgEl.dataset.errorKey) {
+            emptyMsgEl.textContent = t(emptyMsgEl.dataset.errorKey);
+        }
+    });
+
+    // Init
+    loadQuestion();
+</script>
+{% endif %}
+{% endblock %}
